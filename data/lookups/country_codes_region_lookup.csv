@@ -1,0 +1,48 @@
+code_name,full_name,in_europe,in_west_europe,in_east_europe,in_south_europe,in_north_europe,in_anglophone,in_christian,in_catholic,in_protestant
+AUS," ""Australia""",0,0,0,0,0,1,1,1,0
+AUT," ""Austria""",1,1,0,0,0,0,1,1,0
+BEL," ""Belgium""",1,1,0,0,0,0,1,1,0
+BGR," ""Bulgaria""",1,0,1,0,0,0,1,0,0
+BLR," ""Belarus""",0,0,1,0,0,0,1,0,0
+CAN," ""Canada""",0,0,0,0,0,1,1,1,0
+CHE," ""Switzerland""",0,1,0,0,0,0,1,1,0
+CHL," ""Chile""",0,0,0,0,0,0,1,1,0
+CZE," ""Czech Republic""",1,0,1,0,0,0,0,0,0
+DEUTE," ""East Germany""",0,0,1,0,0,0,0,0,0
+DEUTNP," ""Germany""",0,1,0,0,0,0,1,0,1
+DEUTW," ""West Germany""",0,1,0,0,0,0,1,0,1
+DNK," ""Denmark""",1,0,0,0,1,0,1,0,1
+ESP," ""Spain""",1,0,0,1,0,0,1,1,0
+EST," ""Estonia""",1,0,1,0,0,0,0,0,0
+FIN," ""Finland""",1,0,0,0,1,0,1,0,1
+FRACNP," ""France (Civilian)""",0,0,0,0,0,0,1,1,0
+FRATNP," ""France (Total)""",1,1,0,0,0,0,1,1,0
+GBR_NIR," ""Northern Ireland""",1,1,0,0,0,1,1,0,1
+GBR_NP," ""United Kingdom""",0,0,0,0,0,1,1,0,1
+GBR_SCO," ""Scotland""",1,1,0,0,0,1,1,0,1
+GBRCENW," ""England and Wales (Civilian)""",0,0,0,0,0,1,1,0,1
+GBRTENW," ""England and Wales (Total)""",1,1,0,0,0,1,1,0,1
+HUN," ""Hungary""",1,0,1,0,0,0,1,1,0
+IRL," ""Ireland""",1,1,0,0,0,1,1,1,0
+ISL," ""Iceland""",0,0,0,0,1,0,1,0,1
+ISR," ""Israel""",0,0,0,0,0,0,0,0,0
+ITA," ""Italy""",1,0,0,1,0,0,1,1,0
+JPN," ""Japan""",0,0,0,0,0,0,0,0,0
+LTU," ""Lithuania""",1,0,1,0,0,0,1,1,0
+LUX," ""Luxembourg""",1,1,0,0,0,0,1,1,0
+LVA," ""Latvia""",1,0,1,0,0,0,1,0,1
+NLD," ""Netherlands""",1,1,0,0,0,0,0,0,0
+NOR," ""Norway""",1,0,0,0,1,0,1,0,1
+NZL_MA," ""New Zealand -- Maori""",0,0,0,0,0,1,0,0,0
+NZL_NM," ""New Zealand -- Non-Maori""",0,0,0,0,0,1,0,0,0
+NZL_NP," ""New Zealand""",0,0,0,0,0,1,0,0,0
+POL," ""Poland""",1,0,1,0,0,0,1,1,0
+PRT," ""Portugal""",1,0,0,1,0,0,1,1,0
+RUS," ""Russia""",0,0,0,0,0,0,1,0,0
+SVK," ""Slovakia""",1,0,1,0,0,0,1,1,0
+SVN," ""Slovenia""",1,0,1,0,0,0,1,1,0
+SWE," ""Sweden""",1,0,0,0,1,0,1,0,1
+TWN," ""Taiwan""",0,0,0,0,0,0,0,0,0
+UKR," ""Ukraine""",0,0,1,0,0,0,1,0,0
+USA," ""The United States of America""",0,0,0,0,0,1,1,0,1
+DEUT," ""Germany (East & West Combined)""",1,1,0,0,0,0,1,0,1
