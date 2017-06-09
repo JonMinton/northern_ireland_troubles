@@ -245,6 +245,7 @@ dta_nir %>%
   ) -> dta_nir_sub_lmr
 
 
+
 dta_nir_sub_lmr %>% 
   lm(lmr ~ as.factor(age) * (yr_pre_38 + impr_phase + yr_since_imp), 
      data = .) -> mod_lmr_01
@@ -604,4 +605,80 @@ dif_estimates %>%
 # A total of 2776 additional deaths predicted using this model alone
 # So around 50-60% of the attributed deaths appear explained by this 
 # stylised model 
-  
+
+# Troubles effects by age 
+coef(mod_lmr_05) -> trbls_effects
+trbls_effects <- trbls_effects[188:217]
+tmp <- data_frame(age = 16:45, effect = trbls_effects)
+tmp %>% ggplot() + geom_point(aes(x = age, y = effect))
+
+
+
+# Model 5 but for females
+
+k <- 0.09748423
+
+dta_nir %>% 
+  filter(sex == "female") %>% 
+  filter(age >= 15 & age <= 45) %>% 
+  mutate(mr = (deaths + 0.5) / (exposure + 0.5)) %>% 
+  mutate(lmr = log(mr, 10)) %>% 
+  dplyr::select(year, age, lmr) %>% 
+  mutate(yr_pre_38 = year <= 1938) %>%
+  mutate(
+    early_phase = ifelse(
+      yr_pre_38,
+      year - 1922,
+      0
+    )
+  ) %>% 
+  mutate(impr_phase = year >= 1939 & year <= 1955) %>% 
+  mutate(
+    yr_since_imp = ifelse(
+      impr_phase, 
+      year - 1939,
+      0
+    )
+  ) %>% 
+  mutate(
+    post_55 = year > 1955,
+    yr_since_imp2 = ifelse(
+      post_55, 
+      year - 1955,
+      0
+    )
+  ) %>% 
+  mutate(
+    trbls_kpc = ifelse(year < 1972, 0, (1 - k) ^ (year - 1972))
+  ) -> dta_nir_sub_lmr_female
+
+
+dta_nir_sub_lmr_female %>% 
+  lm(lmr ~ as.factor(age) * (yr_pre_38 + early_phase + impr_phase + yr_since_imp + yr_since_imp2 + trbls_kpc), 
+     data = .) -> mod_lmr_05_female
+
+dta_nir_sub_lmr_female %>% 
+  modelr::add_predictions(mod_lmr_05_female, var = "pred_active") %>%
+  dplyr::select(year, age, lmr, pred_active) -> preds_trbls_female
+
+preds_trbls_female %>% 
+  gather(key = "type", value = "value", lmr:pred_active) %>% 
+  levelplot(
+    value ~ year * age | type, data = .,
+    col.regions = qual_col,
+  #    at = seq(from = -4.5, to = -1.5, by = 0.05),
+    scales = list(alternating = 3),
+    aspect= "iso"
+  )
+
+dta_nir_sub_lmr_female %>% 
+  lm(lmr ~ as.factor(age) * (yr_pre_38 + early_phase + impr_phase + yr_since_imp + yr_since_imp2), 
+     data = .) -> mod_lmr_05_female_notrbls
+
+AIC(mod_lmr_05_female, mod_lmr_05_female_notrbls)
+
+
+coef(mod_lmr_05_female) -> trbls_effects
+trbls_effects <- trbls_effects[188:217]
+tmp <- data_frame(age = 16:45, effect = trbls_effects)
+tmp %>% ggplot() + geom_point(aes(x = age, y = effect))
