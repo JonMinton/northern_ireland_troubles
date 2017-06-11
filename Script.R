@@ -55,6 +55,60 @@ dta_nir %>%
     aspect= "iso"
   )
 
+# Ages up to 90, log_10 scale
+dta_nir %>% 
+  filter(age <= 90) %>% 
+  levelplot(
+    lmr ~ year * age | sex, data = .,
+    col.regions = qual_col,
+    at = seq(from = -5.0, to = 0.0, by = 0.1),
+    scales=list(alternating=3),
+    aspect= "iso"
+  ) -> fig_01
+
+tiff("figures/fig01_log_both_genders_all_ages.tiff", width = 15, height = 10, units = "cm", res = 300)
+print(fig_01)
+dev.off()
+
+# Blank figure
+
+dta_nir %>% 
+  filter(age <= 90) %>% 
+  filter(sex == "male") %>%
+  mutate(lmr = NA) %>% 
+  levelplot(
+    lmr ~ year * age, data = .,
+    col.regions = qual_col,
+    at = seq(from = -5.0, to = 0.0, by = 0.1),
+    scales=list(alternating=3),
+    colorkey = F,
+    aspect= "iso"
+  ) -> fig_02
+print(fig_02)
+
+
+svg("figures/fig02_log_both_genders_all_ages.svg")
+print(fig_02)
+dev.off()
+
+# Figure 3: deaths between ages 18 and 40 
+
+dta_nir %>% 
+  filter(age >= 18 & age <= 40) %>% 
+  group_by(year, sex) %>% 
+  summarise(deaths = sum(deaths)) %>% 
+  ggplot(aes(x = year, y = deaths, group = sex, colour = sex, shape = sex)) + 
+  geom_point() + 
+  theme_minimal() + 
+  labs(x = "Year", y = "Deaths") + 
+  geom_rect(
+    data = data.frame(xmin = 1971, xmax = 1973, ymin = -Inf, ymax = Inf),
+    aes(xmin = xmin, xmax = xmax, ymin=ymin, ymax = ymax), fill = "lightgrey", alpha = 0.5,
+    inherit.aes = F
+    ) + 
+  theme(legend.position = c(0.8, 0.8))
+
+ggsave("figures/fig03_deaths_trend.png", dpi = 300, width = 10, height = 10, units = "cm")
 
 # RGL figure
 
@@ -174,12 +228,17 @@ dta_nir %>%
 dta_nir %>% 
   filter(age >= 15 & age <= 45) %>% 
   levelplot(
-    lmr ~ P * age | sex, data = .,
+    lmr ~ year * age | sex, data = .,
     col.regions = qual_col,
     at = seq(from = -4.5, to = -1.5, by = 0.05),
     scales = list(alternating = 3),
     aspect= "iso"
-  )
+  ) -> fig04 
+
+tiff("figures/fig04_lmr_zoomed.tiff", height = 15, width = 15, units = "cm", res = 300)
+print(fig04)
+dev.off()
+
 
 
 dta_nir %>% 
@@ -314,18 +373,23 @@ dta_nir_sub_lmr %>%
 
 dta_nir_sub_lmr %>% 
   modelr::add_predictions(mod_lmr_05) %>% 
-  dplyr::select(year, age, lmr, pred )  %>% 
-  gather("type", "value", lmr:pred) %>% 
+  dplyr::select(year, age, actual = lmr , predicted = pred)  %>% 
+  gather("type", "value", actual:predicted) %>% 
   levelplot(
     value ~ year * age | type, data = .,
     col.regions = qual_col,
-    #    at = seq(from = -4.5, to = -1.5, by = 0.05),
+    at = seq(from = -4.5, to = -1.5, by = 0.05),
     scales = list(alternating = 3),
     aspect= "iso"
-  )
+  ) -> fig05
+
+tiff("figures/fig05_prediction_surface.tiff", height = 10, width = 20, units = "cm", res = 300)
+print(fig05)
+dev.off()
+
 
 dta_nir_sub_lmr %>% 
-  modelr::add_predictions(mod_lmr_03) %>% 
+  modelr::add_predictions(mod_lmr_05) %>% 
   dplyr::select(year, age, lmr, pred ) %>% 
   mutate(residuals = pred - lmr) %>% 
   levelplot(
@@ -337,7 +401,14 @@ dta_nir_sub_lmr %>%
       x = list(at = seq(1925, 2010, by = 5), rot = 90)
     ),
     aspect= "iso"
-  )
+  ) -> fig06
+
+tiff("figures/fig06_residuals_surface.tiff", height = 10, width = 20, units = "cm", res = 300)
+print(fig06)
+dev.off()
+
+
+
 
 dta_nir_sub_lmr %>% 
   modelr::add_predictions(mod_lmr_04) %>% 
@@ -509,7 +580,11 @@ decay_aic <- data_frame(
   )
 
 ggplot(decay_aic) +
-  geom_line(aes(x = decay_rates, y = aic))
+  geom_line(aes(x = decay_rates, y = aic)) + 
+  theme_minimal() + 
+  labs(x = "Decay Rate", y = "Penalised model fit (AIC)")
+
+ggsave("figures/fig07_fit_decay.tiff", height = 8, width = 8, units = "cm", dpi = 300)
 
 
 # Half life 
@@ -549,13 +624,36 @@ dta_nir %>%
 
 
 dif_estimates %>% 
+  filter(year >= 1970) %>% 
   levelplot(
     difference ~ year * age , data = .,
     col.regions = qual_col,
     #    at = seq(from = -4.5, to = -1.5, by = 0.05),
     scales = list(alternating = 3),
     aspect= "iso"
-  )
+  ) -> fig_08
+
+tiff("figures/fig_08_trbls_effect.tiff", height = 8, width = 10, units = "cm", res = 300)
+print(fig_08)
+dev.off()
+
+
+# Table 1 about here 
+
+dif_estimates %>% 
+  mutate(age_grp = cut(age, breaks = seq(15, 45, by = 5), include.lowest = T)) %>% 
+  filter(year >= 1970) %>% 
+  group_by(year, age_grp) %>%
+  summarise(excess_deaths = sum(difference)) %>%
+  spread(age_grp, excess_deaths) %>% 
+  mutate(total = `[15,20]` +`(20,25]` +`(25,30]`+ `(30,35]`+ `(35,40]`+ `(40,45]`) %>% 
+  mutate_at(vars(`[15,20]`:total), funs(round))
+
+
+
+
+
+
 
 # 3d plot 
 dif_estimates %>% 
@@ -605,12 +703,6 @@ dif_estimates %>%
 # A total of 2776 additional deaths predicted using this model alone
 # So around 50-60% of the attributed deaths appear explained by this 
 # stylised model 
-
-# Troubles effects by age 
-coef(mod_lmr_05) -> trbls_effects
-trbls_effects <- trbls_effects[188:217]
-tmp <- data_frame(age = 16:45, effect = trbls_effects)
-tmp %>% ggplot() + geom_point(aes(x = age, y = effect))
 
 
 
@@ -678,7 +770,26 @@ dta_nir_sub_lmr_female %>%
 AIC(mod_lmr_05_female, mod_lmr_05_female_notrbls)
 
 
-coef(mod_lmr_05_female) -> trbls_effects
+coef(mod_lmr_05_female) -> trbls_effects_females
+trbls_effects_females <- trbls_effects_females[188:217]
+tmp <- data_frame(age = 16:45, female = trbls_effects_females)
+
+# Troubles effects by age 
+coef(mod_lmr_05) -> trbls_effects
 trbls_effects <- trbls_effects[188:217]
-tmp <- data_frame(age = 16:45, effect = trbls_effects)
-tmp %>% ggplot() + geom_point(aes(x = age, y = effect))
+tmp2 <- data_frame(age = 16:45, male = trbls_effects)
+
+tmp <- full_join(tmp, tmp2) %>% 
+  gather(sex, effect, - age)
+
+tmp %>% ggplot() + 
+  geom_point(aes(x = age, y = effect, group = sex, colour = sex, shape = sex)) +
+  theme_minimal() + 
+  labs(x = "Age", y = "Troubles Effect Coefficient") + 
+  geom_vline(xintercept = 18, linetype= "dashed") +
+  geom_hline(yintercept = 0)
+
+ggsave("figures/fig09_troubles_coeff.tiff", height = 12, width = 12, units = "cm", dpi = 300)
+
+
+
