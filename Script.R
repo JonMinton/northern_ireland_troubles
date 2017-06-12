@@ -253,11 +253,12 @@ ages <- names(tmp)
 tmp <- as.matrix(tmp)
 
 # Persp plot, males, all ages 
-persp3d(z = tmp, col = "lightgray", 
+persp3d(z = tmp, col = "lightblue", 
         box = F, axes = F,
-        aspect = c(1, 1, 31/93),
+        aspect = c(1, 31/91, 0.5),
         xlab = "", ylab = "", zlab = ""
 )
+
 
 
 # Linear Model Specs ------------------------------------------------------
@@ -372,9 +373,17 @@ dta_nir_sub_lmr %>%
 
 
 dta_nir_sub_lmr %>% 
-  modelr::add_predictions(mod_lmr_05) %>% 
-  dplyr::select(year, age, actual = lmr , predicted = pred)  %>% 
-  gather("type", "value", actual:predicted) %>% 
+  modelr::add_predictions(mod_lmr_05, var = "pred_baseline") %>% 
+  select(year, age, actual = lmr, predicted = pred_baseline) -> baseline_preds
+
+dta_nir_sub_lmr %>% 
+  mutate(trbls_kpc = 0) %>% 
+  modelr:: add_predictions(mod_lmr_05, var = "pred_counter") %>% 
+  select(year, age, counterfactual = pred_counter) -> counter_preds
+
+baseline_preds %>% 
+  left_join(counter_preds) %>% 
+  gather("type", "value", actual:counterfactual) %>% 
   levelplot(
     value ~ year * age | type, data = .,
     col.regions = qual_col,
@@ -383,7 +392,7 @@ dta_nir_sub_lmr %>%
     aspect= "iso"
   ) -> fig05
 
-tiff("figures/fig05_prediction_surface.tiff", height = 10, width = 20, units = "cm", res = 300)
+tiff("figures/fig05_prediction_surface.tiff", height = 16, width = 15, units = "cm", res = 300)
 print(fig05)
 dev.off()
 
@@ -646,12 +655,41 @@ dif_estimates %>%
   group_by(year, age_grp) %>%
   summarise(excess_deaths = sum(difference)) %>%
   spread(age_grp, excess_deaths) %>% 
+  ungroup() %>% 
   mutate(total = `[15,20]` +`(20,25]` +`(25,30]`+ `(30,35]`+ `(35,40]`+ `(40,45]`) %>% 
-  mutate_at(vars(`[15,20]`:total), funs(round))
+  mutate(cumulative_total = cumsum(total)) %>% 
+  mutate_at(vars(`[15,20]`:cumulative_total), funs(round)) -> estimated_deaths
+
+# xlsx::write.xlsx(
+#   estimated_deaths, 
+#   file = "tables/results.xlsx",
+#   sheetName = "troubles_deaths",
+#   row.names = F
+#   ) # Does not work without Java installed 
+
+# Doing it the simpler way 
+
+write.csv(x = estimated_deaths, file = "clipboard", row.names = F)
 
 
+# How many deaths in persons aged 18-23 years?
 
+dif_estimates %>% 
+  filter(age >= 18 & age <= 23) %>% 
+  filter(year >= 1970) %>% 
+  summarise(excess_deaths = sum(difference, na.rm = T)) -> deaths_18_23
 
+dif_estimates %>% 
+  filter(year >= 1970) %>% 
+  summarise(excess_deaths = sum(difference, na.rm = T)) -> deaths_all
+
+deaths_18_23 / deaths_all
+%>%
+  spread(age_grp, excess_deaths) %>% 
+  ungroup() %>% 
+  mutate(total = `[15,20]` +`(20,25]` +`(25,30]`+ `(30,35]`+ `(35,40]`+ `(40,45]`) %>% 
+  mutate(cumulative_total = cumsum(total)) %>% 
+  mutate_at(vars(`[15,20]`:cumulative_total), funs(round)) -> estimated_deaths
 
 
 
