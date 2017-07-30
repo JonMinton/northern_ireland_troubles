@@ -240,23 +240,73 @@ r2stl(
 
 # Modelling  --------------------------------------------------------------
 
+k <- 0.09748423
 
 dta_tidy %>% 
   filter(sex == "male") %>% 
   filter(age >= 15 & age <= 45) %>%
   mutate(lg_risk = log(risk, 10)) %>% 
-  mutate(years_since_start = year - min(year)) -> dta_male_young_adult
+  mutate(years_since_start = year - min(year)) %>% 
+  mutate(
+    conf_kpc = ifelse(year < 1994, 0, (1 - k) ^ (year - 1994))
+  ) -> dta_male_young_adult
 
 dta_male_young_adult %>% 
-    lm(lg_risk ~ as.factor(age) * (years_since_start), 
+    lm(lg_risk ~ as.factor(age) * (years_since_start) + (year > 1982) + (year > 1997), 
        data = .)  -> mod_lin_improvement
 
+dta_male_young_adult %>% 
+  lm(lg_risk ~ as.factor(age) * years_since_start,
+     data = .) -> mod_lin
+
+dta_male_young_adult %>% 
+  lm(lg_risk ~ as.factor(age) * years_since_start + (year > 1982) + (year > 1997),
+     data = .) -> mod_lin_intercept_correction
+
+dta_male_young_adult %>% 
+  lm(lg_risk ~ as.factor(age) * (years_since_start + (year > 1982) + (year > 1997) ),
+     data = .) -> mod_lin_age_spec_correction
+
+dta_male_young_adult %>% 
+  lm(lg_risk ~ as.factor(age) * (years_since_start + conf_kpc),
+     data = .) -> mod_lin_conf
+
+dta_male_young_adult %>% 
+  lm(lg_risk ~ as.factor(age) * (years_since_start + conf_kpc) + (year > 1982) + (year > 1997),
+     data = .) -> mod_lin_intercept_correction_conf
+
+dta_male_young_adult %>% 
+  lm(lg_risk ~ as.factor(age) * (years_since_start + conf_kpc + (year > 1982) + (year > 1997) ),
+     data = .) -> mod_lin_age_spec_correction_conf
+
+
+# F tests
+
+anova(mod_lin, mod_lin_conf) # Conf +
+anova(mod_lin_intercept_correction, mod_lin_intercept_correction_conf) # Conf +
+anova(mod_lin_age_spec_correction, mod_lin_age_spec_correction_conf) # Conf +
+
+AIC(mod_lin, mod_lin_conf,
+    mod_lin_intercept_correction, mod_lin_intercept_correction_conf,
+    mod_lin_age_spec_correction, mod_lin_age_spec_correction_conf)
+# Best model: mod_lin_age_spec_correction_conf
+
+BIC(mod_lin, mod_lin_conf,
+    mod_lin_intercept_correction, mod_lin_intercept_correction_conf,
+    mod_lin_age_spec_correction, mod_lin_age_spec_correction_conf)
+# Best model: mod_lin_intercept_correction_conf
+
+
+
 # predicted vs actual risk 
 
 dta_male_young_adult %>% 
-  modelr::add_predictions(mod_lin_improvement) %>% 
-  dplyr::select(year, age, lg_risk, pred)  %>% 
-  gather("type", "value", lg_risk:pred) %>% 
+  modelr::add_predictions(mod_lin_intercept_correction_conf) %>% 
+  mutate(int_pred = pred) %>% 
+  modelr::add_predictions(mod_lin_age_spec_correction_conf) %>% 
+  mutate(age_pred = pred) %>% 
+  dplyr::select(year, age, lg_risk, int_pred, age_pred)  %>%
+  gather("type", "value", lg_risk:age_pred) %>% 
   levelplot(
     value ~ year * age | type, data = .,
     col.regions = qual_col,
@@ -268,54 +318,16 @@ dta_male_young_adult %>%
 # And residuals
 
 dta_male_young_adult %>% 
-  modelr::add_predictions(mod_lin_improvement) %>% 
-  dplyr::select(year, age, lg_risk, pred) %>% 
-  mutate(residual = lg_risk - pred) %>% 
-  levelplot(
-    residual ~ year * age, data = .,
-    col.regions = rdbu_col,
-    at = seq(from = -0.4, to = 0.4, by = 0.05),
-    scales = list(
-      alternating = 3,
-      x = list(at = seq(1980, 2020, by = 5), rot = 90)
-    ),
-    aspect= "iso"
-  )
-
-
-
-dta_tidy %>% 
-  filter(sex == "female") %>% 
-  filter(age >= 15 & age <= 45) %>%
-  mutate(lg_risk = log(risk, 10)) %>% 
-  mutate(years_since_start = year - min(year)) -> dta_male_young_adult
-
-dta_male_young_adult %>% 
-  lm(lg_risk ~ as.factor(age) * (years_since_start), 
-     data = .)  -> mod_lin_improvement
-
-# predicted vs actual risk 
-
-dta_male_young_adult %>% 
-  modelr::add_predictions(mod_lin_improvement) %>% 
-  dplyr::select(year, age, lg_risk, pred)  %>% 
-  gather("type", "value", lg_risk:pred) %>% 
+  modelr::add_predictions(mod_lin_intercept_correction_conf) %>% 
+  mutate(int_pred = pred) %>% 
+  modelr::add_predictions(mod_lin_age_spec_correction_conf) %>% 
+  mutate(age_pred = pred) %>% 
+  dplyr::select(year, age, lg_risk, int_pred, age_pred)  %>%
+  mutate(res_int = int_pred - lg_risk, res_age = age_pred - lg_risk) %>% 
+  select(year, age, res_int, res_age) %>% 
+  gather("type", "value", res_int:res_age) %>% 
   levelplot(
     value ~ year * age | type, data = .,
-    col.regions = qual_col,
-    #    at = seq(from = -4.5, to = -1.5, by = 0.05),
-    scales = list(alternating = 3),
-    aspect= "iso"
-  )
-
-# And residuals
-
-dta_male_young_adult %>% 
-  modelr::add_predictions(mod_lin_improvement) %>% 
-  dplyr::select(year, age, lg_risk, pred) %>% 
-  mutate(residual = lg_risk - pred) %>% 
-  levelplot(
-    residual ~ year * age, data = .,
     col.regions = rdbu_col,
     at = seq(from = -0.4, to = 0.4, by = 0.05),
     scales = list(
@@ -324,4 +336,56 @@ dta_male_young_adult %>%
     ),
     aspect= "iso"
   )
+
+
+
+# Optimise decay rate 
+
+
+k <- 0.09748423
+optimise_decay_rate <- function(par){
+  
+  k <- par[["k"]]
+  
+  dta_tidy %>% 
+    filter(sex == "male") %>% 
+    filter(age >= 15 & age <= 45) %>%
+    mutate(lg_risk = log(risk, 10)) %>% 
+    mutate(years_since_start = year - min(year)) %>% 
+    mutate(
+      conf_kpc = ifelse(year < 1994, 0, (1 - k) ^ (year - 1994))
+    ) -> dta_male_young_adult
+  
+  dta_male_young_adult %>% 
+    lm(lg_risk ~ as.factor(age) * (years_since_start + conf_kpc + (year > 1982) + (year > 1997) ),
+       data = .) -> mod_lin_age_spec_correction_conf
+  
+  
+  AIC(mod_lin_age_spec_correction_conf)
+}
+
+opt_k <- optim(
+  par = list(k = 0.0974), fn = optimise_decay_rate,
+  lower = list(k = 0), upper = list(k = 2),
+  method = "L-BFGS-B"
+)
+
+# Rate maximised at 0.1980003 
+
+# Plot for many values of k
+
+k_vals <- seq(0, 1, by = 0.01)
+aics <- vector("numeric", length = length(k_vals))
+
+for (i in seq_along(k_vals)){
+  this_k <- k_vals[i]
+  this_par <- list(k = this_k)
+  aics[i] <- optimise_decay_rate(par = this_par)  
+}
+
+tmp_df <- 
+  data_frame(k = k_vals, aic = aics)
+
+tmp_df %>% ggplot(., aes(x = k, y = aic)) + 
+  geom_line()
 
