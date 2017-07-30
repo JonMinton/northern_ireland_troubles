@@ -13,15 +13,22 @@
 
 rm(list = ls())
 
+# Package management ------------------------------------------------------
+
+
 pacman::p_load(
   MASS,
   readxl,
   tidyverse,
-  purrr, rgl,
+  purrr, 
+  rgl,  r2stl,
   RColorBrewer,
   lattice,   latticeExtra,
   spatstat
 )
+
+
+# Data Management ---------------------------------------------------------
 
 
 dta_male <- read_excel("data/algeria/Single_ages_mortality_surface_Algeria-V.-13.07.2017.xlsx", sheet = "Males")
@@ -44,6 +51,9 @@ dta_tidy <- bind_rows(dta_male, dta_female) %>%
 
 qual_col <- colorRampPalette(rev(brewer.pal(12, "Paired")))(200)
 rdbu_col <- colorRampPalette(rev(brewer.pal(5, "RdBu")))(200)
+
+
+# Levelplots of data ------------------------------------------------------
 
 
 # Mortality risk
@@ -69,6 +79,9 @@ dta_tidy %>%
     aspect= "iso"
   )
 
+
+
+# 3D plots - rgl ----------------------------------------------------------
 
 
 # 3d plot - identity scale - male
@@ -135,6 +148,97 @@ persp3d(z = tmp, col = "lightgray",
         xlab = "", ylab = "", zlab = ""
 )
 
+
+# stl files ---------------------------------------------------------------
+
+convert_to_list_matrix <- function(tidy_dta){
+  tidy_dta %>% 
+    select(year, age, risk) %>% 
+    spread(age, risk) -> tmp
+  years <- tmp$year
+  tmp$year <- NULL
+  ages <- colnames(tmp) 
+  tmp <- as.matrix(tmp)
+  rownames(tmp) <- years
+  colnames(tmp) <- ages
+  out <- list(
+    x = as.numeric(ages), 
+    y = as.numeric(years), 
+    z = tmp
+    )
+  
+  out
+}
+
+dta_tidy %>% 
+  filter(sex == "male") %>% 
+  convert_to_list_matrix() -> out_male_all
+
+dta_tidy %>% 
+  filter(sex == "female") %>% 
+  convert_to_list_matrix() -> out_female_all
+
+dta_tidy %>% 
+  filter(sex == "male") %>% 
+  mutate(risk = log(risk, 10)) %>% 
+  convert_to_list_matrix() -> log_male_all
+
+dta_tidy %>% 
+  filter(sex == "female") %>% 
+  mutate(risk = log(risk, 10)) %>% 
+  convert_to_list_matrix() -> log_female_all
+
+
+r2stl(
+    x = as.numeric(rownames(out_male_all$z)),
+    y = as.numeric(colnames(out_male_all$z)),
+    z = out_male_all$z,
+    filename = "data/algeria/male.stl",
+#    object.name = "tmp.stl",
+    show.persp = T,
+    z.expand = T
+#    strict.stl = T,
+#    min.height = 0.01
+  )
+
+
+r2stl(
+  x = as.numeric(rownames(out_female_all$z)),
+  y = as.numeric(colnames(out_female_all$z)),
+  z = out_female_all$z,
+  filename = "data/algeria/female.stl",
+  #    object.name = "tmp.stl",
+  show.persp = T,
+  z.expand = T
+  #    strict.stl = T,
+  #    min.height = 0.01
+)
+
+r2stl(
+  x = as.numeric(rownames(log_male_all$z)),
+  y = as.numeric(colnames(log_male_all$z)),
+  z = log_male_all$z,
+  filename = "data/algeria/log_male.stl",
+  #    object.name = "tmp.stl",
+  show.persp = T,
+  z.expand = T
+  #    strict.stl = T,
+  #    min.height = 0.01
+)
+
+r2stl(
+  x = as.numeric(rownames(log_female_all$z)),
+  y = as.numeric(colnames(log_female_all$z)),
+  z = log_female_all$z,
+  filename = "data/algeria/log_female.stl",
+  #    object.name = "tmp.stl",
+  show.persp = T,
+  z.expand = T
+  #    strict.stl = T,
+  #    min.height = 0.01
+)
+
+# Modelling  --------------------------------------------------------------
 
 
 dta_tidy %>% 
