@@ -46,7 +46,11 @@
 </symbol>
 </g>
 </defs>
+<<<<<<< HEAD
 <g id="surface1">
+=======
+<g id="surface6">
+>>>>>>> 488eb1fbd39131b29033215d34757735de5f6e1b
 <rect x="0" y="0" width="504" height="504" style="fill:rgb(100%,100%,100%);fill-opacity:1;stroke:none;"/>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
   <use xlink:href="#glyph0-0" x="244.625" y="489.71875"/>

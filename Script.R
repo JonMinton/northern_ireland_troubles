@@ -69,6 +69,9 @@ dta_nir %>%
 tiff("figures/fig01_log_both_genders_all_ages.tiff", width = 15, height = 10, units = "cm", res = 300)
 print(fig_01)
 dev.off()
+png("figures/fig01_log_both_genders_all_ages.png", width = 15, height = 10, units = "cm", res = 300)
+print(fig_01)
+dev.off()
 
 png("figures/fig01_log_both_genders_all_ages.png", width = 15, height = 10, units = "cm", res = 300)
 print(fig_01)
@@ -667,6 +670,7 @@ png("figures/fig_08_trbls_effect.png", height = 8, width = 10, units = "cm", res
 print(fig_08)
 dev.off()
 
+
 # Table 1 about here 
 
 dif_estimates %>% 
@@ -704,7 +708,7 @@ dif_estimates %>%
   summarise(excess_deaths = sum(difference, na.rm = T)) -> deaths_all
 
 deaths_18_23 / deaths_all
-%>%
+  %>%
   spread(age_grp, excess_deaths) %>% 
   ungroup() %>% 
   mutate(total = `[15,20]` +`(20,25]` +`(25,30]`+ `(30,35]`+ `(35,40]`+ `(40,45]`) %>% 
@@ -848,6 +852,7 @@ tmp %>% ggplot() +
   geom_hline(yintercept = 0)
 
 ggsave("figures/fig09_troubles_coeff.tiff", height = 12, width = 12, units = "cm", dpi = 300)
+ggsave("figures/fig09_troubles_coeff.png", height = 12, width = 12, units = "cm", dpi = 300)
 
 
 
