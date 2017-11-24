@@ -70,6 +70,12 @@ tiff("figures/fig01_log_both_genders_all_ages.tiff", width = 15, height = 10, un
 print(fig_01)
 dev.off()
 
+png("figures/fig01_log_both_genders_all_ages.png", width = 15, height = 10, units = "cm", res = 300)
+print(fig_01)
+dev.off()
+
+
+
 # Blank figure
 
 dta_nir %>% 
@@ -239,6 +245,10 @@ tiff("figures/fig04_lmr_zoomed.tiff", height = 15, width = 15, units = "cm", res
 print(fig04)
 dev.off()
 
+png("figures/fig04_lmr_zoomed.png", height = 15, width = 15, units = "cm", res = 300)
+print(fig04)
+dev.off()
+
 
 
 dta_nir %>% 
@@ -396,6 +406,10 @@ tiff("figures/fig05_prediction_surface.tiff", height = 16, width = 15, units = "
 print(fig05)
 dev.off()
 
+png("figures/fig05_prediction_surface.png", height = 16, width = 15, units = "cm", res = 300)
+print(fig05)
+dev.off()
+
 
 dta_nir_sub_lmr %>% 
   modelr::add_predictions(mod_lmr_05) %>% 
@@ -416,7 +430,9 @@ tiff("figures/fig06_residuals_surface.tiff", height = 10, width = 20, units = "c
 print(fig06)
 dev.off()
 
-
+png("figures/fig06_residuals_surface.png", height = 10, width = 20, units = "cm", res = 300)
+print(fig06)
+dev.off()
 
 
 dta_nir_sub_lmr %>% 
@@ -594,6 +610,7 @@ ggplot(decay_aic) +
   labs(x = "Decay Rate", y = "Penalised model fit (AIC)")
 
 ggsave("figures/fig07_fit_decay.tiff", height = 8, width = 8, units = "cm", dpi = 300)
+ggsave("figures/fig07_fit_decay.png", height = 8, width = 8, units = "cm", dpi = 300)
 
 
 # Half life 
@@ -646,6 +663,9 @@ tiff("figures/fig_08_trbls_effect.tiff", height = 8, width = 10, units = "cm", r
 print(fig_08)
 dev.off()
 
+png("figures/fig_08_trbls_effect.png", height = 8, width = 10, units = "cm", res = 300)
+print(fig_08)
+dev.off()
 
 # Table 1 about here 
 
