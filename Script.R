@@ -7,7 +7,7 @@
 
 # To dos ------------------------------------------------------------------
 
-# 1. Create function factory for leveplot defauls
+# 1. Create function factory for leveplot defaults
 
 # Load packages -----------------------------------------------------------
 
@@ -31,10 +31,175 @@ pacman::p_load(
 
 # Note: Need to combine East and West Germany for some analyses 
 
+# CLP - NI vs comparator pops ---------------------------------------------
 
-# Produce levelplot with effective qualitative colourscheme ---------------------------
+
+# UK
+# - Northern Ireland
+# - England & Wales
+# - Scotland
+
+# Western Europe:
+# - Northern Ireland
+# - England & Wales
+# - Scotland 
+# - Ireland
+# - France
+# - Belgium
+# - Luxembourg
+# - Netherlands
+# - Germany
+# - Switzerland
+# - Austria
 
 dta <- read_csv("data/tidy/new_counts.csv")
+
+source("scripts/country_group_definitions.R")
+# NIR vs scot 
+
+table(dta$country_code)
+
+dta %>% 
+  mutate(
+    in_ruk = ifelse(
+      country_code %in% uk_codes  & country_code != "GBR_NIR",
+      TRUE,
+      FALSE
+    ),
+    in_rwe = ifelse(
+      country_code %in% europe_western & country_code != "GBR_NIR",
+      TRUE,
+      FALSE
+    ),
+    in_ee = ifelse(
+      country_code %in% europe_eastern,
+      TRUE,
+      FALSE
+    )
+  ) -> tmp 
+
+# nir, scot, ruk, rwe, ee
+
+# nir 
+tmp %>% 
+  filter(country_code == "GBR_NIR") %>% 
+  select(sex, year, age, deaths, exposure) %>% 
+  mutate(mr = (deaths + 0.5) / (exposure + 0.5)) %>% 
+  mutate(lmr = log(mr, 10)) %>% 
+  mutate(group = "Northern_Ireland") %>% 
+  select(group, sex, age, year, lmr) -> tmp_nir
+
+# scot 
+tmp %>% 
+  filter(country_code == "GBR_SCO") %>% 
+  select(sex, year, age, deaths, exposure) %>% 
+  mutate(mr = (deaths + 0.5) / (exposure + 0.5)) %>% 
+  mutate(lmr = log(mr, 10)) %>% 
+  mutate(group = "Scotland") %>% 
+  select(group, sex, age, year, lmr) -> tmp_scot
+
+# ruk 
+tmp %>% 
+  filter(in_ruk) %>% 
+  group_by(year, age, sex) %>% 
+  summarise(deaths = sum(deaths), exposure = sum(exposure)) %>% 
+  ungroup() %>% 
+  mutate(mr = (deaths + 0.5) / (exposure + 0.5)) %>% 
+  mutate(lmr = log(mr, 10)) %>% 
+  mutate(group = "Rest_of_UK") %>% 
+  select(group, sex, age, year, lmr) -> tmp_ruk
+
+# rwe 
+tmp %>% 
+  filter(in_rwe) %>% 
+  group_by(year, age, sex) %>% 
+  summarise(deaths = sum(deaths), exposure = sum(exposure)) %>% 
+  ungroup() %>% 
+  mutate(mr = (deaths + 0.5) / (exposure + 0.5)) %>% 
+  mutate(lmr = log(mr, 10)) %>% 
+  mutate(group = "Rest_of_WE") %>% 
+  select(group, sex, age, year, lmr) -> tmp_rwe
+
+# ee 
+tmp %>% 
+  filter(in_ee) %>% 
+  group_by(year, age, sex) %>% 
+  summarise(deaths = sum(deaths), exposure = sum(exposure)) %>% 
+  ungroup() %>% 
+  mutate(mr = (deaths + 0.5) / (exposure + 0.5)) %>% 
+  mutate(lmr = log(mr, 10)) %>% 
+  mutate(group = "Eastern_Europe") %>% 
+  select(group, sex, age, year, lmr) -> tmp_ee
+
+# join these together
+
+grouped_comparisons <- reduce(
+  list(tmp_nir, tmp_scot, tmp_ruk, tmp_rwe, tmp_ee),
+  bind_rows
+)
+
+rm(list = ls(pattern = "tmp"))    
+
+# now to produce comparisons
+
+
+{
+  grouped_comparisons %>% 
+  filter(group == "Northern_Ireland") %>% 
+  select(-group)
+} %>% left_join(
+  {
+    grouped_comparisons %>% 
+    spread(group, lmr)
+  }
+) %>% 
+  mutate_at(
+    .vars = vars(Eastern_Europe:Scotland),
+    .funs = function(x) {x - .$lmr}
+  ) %>% 
+  select(-lmr) %>% 
+  gather(key = group, value = dif_lmr, Eastern_Europe:Scotland) %>% 
+  filter(!is.na(dif_lmr)) -> group_lmr_differences
+
+# visualise
+group_lmr_differences %>% 
+  filter(group != "Northern_Ireland") %>% 
+  mutate(
+    group = forcats::fct_recode(group,
+      "Eastern\nEurope"           = "Eastern_Europe", 
+      "Rest of\nWestern Europe"  = "Rest_of_WE",
+      "Rest of UK"               = "Rest_of_UK",
+      "Scotland"                 = "Scotland"  
+    ),
+    group = factor(group, levels = c("Scotland", "Rest of UK", "Rest of\nWestern Europe", "Eastern\nEurope"))
+  ) %>% 
+  mutate(dif_lmr = case_when(
+    dif_lmr < -0.30 ~ -0.30,
+    dif_lmr > 0.30 ~  0.30,  
+    TRUE           ~ dif_lmr
+    )
+  )%>% 
+  filter(year >= 1950) %>% 
+  filter(age <= 80) %>% 
+  ggplot(aes(x = year, y = age, fill = dif_lmr)) +
+  geom_tile() + 
+  facet_grid(sex ~ group) +
+  scale_fill_gradient2(
+    low = "red",
+    mid = "white",
+    high = "blue"
+  ) +
+  labs(
+    y = "Age in single years",
+    x = "Year",
+    fill = "Mortality\ndifference"
+  ) + 
+  theme(
+    axis.text.x = element_text(angle = -45)
+  )
+ggsave("figures/clp_nir.png", dpi = 300, height = 20, width = 20, units = "cm")
+
+# Produce levelplot with effective qualitative colourscheme ---------------------------
 
 dta %>% 
   filter(country_code == "GBR_NIR") %>% 
@@ -66,16 +231,14 @@ dta_nir %>%
     aspect= "iso"
   ) -> fig_01
 
-tiff("figures/fig01_log_both_genders_all_ages.tiff", width = 15, height = 10, units = "cm", res = 300)
+tiff("figures/fig02_log_both_genders_all_ages.tiff", width = 15, height = 10, units = "cm", res = 300)
 print(fig_01)
 dev.off()
-png("figures/fig01_log_both_genders_all_ages.png", width = 15, height = 10, units = "cm", res = 300)
+png("figures/fig02_log_both_genders_all_ages.png", width = 15, height = 10, units = "cm", res = 300)
 print(fig_01)
 dev.off()
 
-png("figures/fig01_log_both_genders_all_ages.png", width = 15, height = 10, units = "cm", res = 300)
-print(fig_01)
-dev.off()
+
 
 
 
@@ -96,7 +259,7 @@ dta_nir %>%
 print(fig_02)
 
 
-svg("figures/fig02_log_both_genders_all_ages.svg")
+svg("figures/fig03_log_both_genders_all_ages.svg")
 print(fig_02)
 dev.off()
 
@@ -117,7 +280,7 @@ dta_nir %>%
     ) + 
   theme(legend.position = c(0.8, 0.8))
 
-ggsave("figures/fig03_deaths_trend.png", dpi = 300, width = 10, height = 10, units = "cm")
+ggsave("figures/fig04_deaths_trend.png", dpi = 300, width = 10, height = 10, units = "cm")
 
 # RGL figure
 
@@ -244,11 +407,11 @@ dta_nir %>%
     aspect= "iso"
   ) -> fig04 
 
-tiff("figures/fig04_lmr_zoomed.tiff", height = 15, width = 15, units = "cm", res = 300)
+tiff("figures/fig05_lmr_zoomed.tiff", height = 15, width = 15, units = "cm", res = 300)
 print(fig04)
 dev.off()
 
-png("figures/fig04_lmr_zoomed.png", height = 15, width = 15, units = "cm", res = 300)
+png("figures/fig05_lmr_zoomed.png", height = 15, width = 15, units = "cm", res = 300)
 print(fig04)
 dev.off()
 
